@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { environment } from '@environments/environment.development';
-import type { GiphyResponse } from '../interfaces/giphy.interface';
+import type { GiphyItem, GiphyResponse } from '../interfaces/giphy.interface';
 import type { Gif } from '../interfaces/gif.interface';
 import { GifMapper } from '../mapper/gif.mapper';
+import { map, Observable } from 'rxjs';
 
 @Injectable({providedIn: 'root'})
 export class GifService {
@@ -31,18 +32,18 @@ export class GifService {
     });
   }
 
-  searchGifs( query: string) {
-    this.http.get<GiphyResponse>(`${ environment.giphyUrl }/gifs/search`, {
+  searchGifs( query: string): Observable<Gif[]> {
+    return this.http.get<GiphyResponse>(`${ environment.giphyUrl }/gifs/search`, {
       params: {
         api_key: environment.giphyApiKey,
         q: query,
         limit: 20,
       }
-    })
-    .subscribe( (resp) => {
-      const gifs = GifMapper.mapGiphyItemsToGifArray(resp.data);
-      console.log({gifs});
-    });
+    }).pipe(
+      map<GiphyResponse, GiphyItem[]>( ({ data }) =>  data),
+      map<GiphyItem[], Gif[]>( ( items ) =>  GifMapper.mapGiphyItemsToGifArray(items)),
+    );
+
   }
 
 }
